@@ -39,7 +39,7 @@ Full audit trail maintained for every action
 ### 1. Clone the repository
 
 ```bash
-git clone <repo-url>
+git clone git@github.com:Richswag009/quant-core.git
 cd bacthprocessing
 ```
 
