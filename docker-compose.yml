@@ -1,0 +1,27 @@
+services:
+  app:
+    build: .
+    container_name: quant-core-app
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/var/www/html
+    environment:
+      - APP_ENV=local
+      - DB_CONNECTION=sqlite
+      - DB_DATABASE=/var/www/html/database/database.sqlite
+      - QUEUE_CONNECTION=database
+
+  queue:
+    build: .
+    container_name: quant-core-queue
+    command: php artisan queue:work --sleep=3 --tries=3 # ← override CMD
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - app
+    environment:
+      - APP_ENV=local
+      - DB_CONNECTION=sqlite
+      - DB_DATABASE=/var/www/html/database/database.sqlite
+      - QUEUE_CONNECTION=database
