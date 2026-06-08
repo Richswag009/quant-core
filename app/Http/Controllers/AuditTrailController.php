@@ -14,7 +14,7 @@ class AuditTrailController extends Controller
         $audits = $batch->audits()
             ->with('user')
             ->orderBy('created_at')
-            ->get();
+            ->paginate(50);
 
         return $this->okResponse("fetched batch audits successfully", AuditLogResource::collection($audits));
     }

@@ -25,6 +25,11 @@ return new class extends Migration
             $table->text("validation_error")->nullable();
             $table->text("posting_error")->nullable();
             $table->timestamp("posted_at")->nullable();
+            $table->index(['batch_id', 'status']);
+            $table->index(['batch_id', 'tenant_id']);
+            $table->index('tenant_id');
+            $table->unique('external_reference');
+
             $table->timestamps();
         });
     }

@@ -57,8 +57,9 @@ class BatchController extends Controller
             if ($user->role === 'operator' && $batch->created_by !== $user->id) {
                 return $this->forbiddenResponse("You do not have access to this batch");
             }
+            $batch = $batch->load(["creator", 'approver']);
 
-            return $this->okResponse('fetched batch successfully', new BatchResource($batch->load(["creator", 'approver'])));
+            return $this->okResponse('fetched batch successfully', new BatchResource($batch));
         } catch (\Exception $th) {
             return $this->serverErrorResponse("something went wrong");
         }

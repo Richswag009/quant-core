@@ -74,7 +74,7 @@ class BatchService
 
         return Batch::visibleTo($user)
             ->filter($filters)
-            ->with(['items', 'creator'])
+            ->with(['approver', 'creator'])
             ->orderBy('created_at', 'desc')
             ->paginate($perPage);
     }

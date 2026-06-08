@@ -22,6 +22,8 @@ class BatchValidationService
     public function validateBatch(Batch $batch)
     {
 
+        $items = $batch->items;
+
         if ($batch->status === BatchStatus::VALIDATED) {
             throw new BatchException("This batch has already been validated and cannot be validated again.");
         }
@@ -30,24 +32,25 @@ class BatchValidationService
             throw new BatchException("Only batches in DRAFT status can be validated.");
         }
 
-
         $validCount = 0;
         $invalidCount = 0;
 
-        $references = $batch->items->pluck('external_reference')->toArray();
+        $references = $items->pluck('external_reference')->toArray();
         $duplicates = array_diff_assoc($references, array_unique($references));
 
+
+
         // 2. Validate each item
-        foreach ($batch->items->whereNotIn('status', ['VALID']) as $item) {
+        foreach ($items as $item) {
 
             $errors = $this->validateItem($item, $duplicates);
 
             if (empty($errors)) {
-                $item->status = BatchStatusItem::VALID->value;
+                $item->status = BatchStatusItem::VALID;
                 $item->validation_error = null;
                 $validCount++;
             } else {
-                $item->status = BatchStatusItem::INVALID->value;
+                $item->status = BatchStatusItem::INVALID;
                 $item->validation_error = implode(', ', $errors);
                 $invalidCount++;
             }
@@ -56,29 +59,29 @@ class BatchValidationService
         }
 
         // 3. Decide batch status
-        if ($invalidCount === 0) {
-            $batch->status = BatchStatus::VALIDATED;
-            $action = 'batch_validated';
-        } else {
-            $batch->status = BatchStatus::DRAFT;
-            $action = 'batch_validation_failed';
-        }
+        $batch->status = $invalidCount === 0
+            ? BatchStatus::VALIDATED
+            : BatchStatus::DRAFT;
+
+        $action = $invalidCount === 0
+            ? 'batch_validated'
+            : 'batch_validation_failed';
+
 
         $batch->save();
 
         // count all valid items including previously validated ones
-        $validCount = $batch->items()->where('status', BatchStatusItem::VALID)->count();
-        $invalidCount = $batch->items()->where('status', BatchStatusItem::INVALID)->count();
-
+        $finalValid = $items->where('status', BatchStatusItem::VALID)->count();
+        $finalInvalid = $items->where('status', BatchStatusItem::INVALID)->count();
 
         $this->auditTrail->log($batch, $action, [
-            'valid' => $validCount,
-            'invalid' => $invalidCount,
+            'valid' => $finalValid,
+            'invalid' => $finalInvalid,
         ]);
 
         // 5. Return summary
         return [
-            'batch_id' => $batch->id,
+            'batch_id' => $batch->batch_id,
             'status' => $batch->status,
             'valid_items' => $validCount,
             'invalid_items' => $invalidCount,

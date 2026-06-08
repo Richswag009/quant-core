@@ -27,7 +27,8 @@ return new class extends Migration
             $table->timestamp('rejected_at')->nullable();
             $table->timestamp('posted_at')->nullable();
             $table->timestamp('approved_at')->nullable();
-
+            $table->index(['status', 'created_at']);         // For status filtering + sorting
+            $table->index(['tenant_id', 'status']);
             $table->timestamps();
         });
     }

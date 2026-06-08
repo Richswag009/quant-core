@@ -8,28 +8,6 @@ Built for Quant Systems Backend Developer Technical Assessment.
 
 ---
 
-## Overview
-
-```
-Operations user uploads CSV or JSON batch
-        ↓
-System validates every line item
-        ↓
-Batch routed for approval
-        ↓
-Approver approves or rejects
-        ↓
-System posts asynchronously via queued job
-        ↓
-Each line item marked success or failure individually
-        ↓
-Failed items can be retried without reposting successful ones
-        ↓
-Full audit trail maintained for every action
-```
-
----
-
 ## Quick Start with Docker
 
 ### Prerequisites
@@ -77,6 +55,11 @@ Expected response:
 docker compose down
 ```
 
+### 5. Import Postman Collection
+
+Import `quant-core.postman_collection.json` from the project root into Postman
+to get all endpoints pre-configured with examples.
+
 ---
 
 ## Sample Credentials
@@ -85,36 +68,135 @@ Two tenants are seeded automatically on startup.
 
 ### Tenant 1 — First Bank MFB
 
-```
-Admin:    admin@firstbank.com    / Blueprint@1995
-Approver: approver@firstbank.com / Blueprint@1995
-Operator: operator@firstbank.com / Blueprint@1995
-```
+| Role     | Email                  | Password |
+| -------- | ---------------------- | -------- |
+| Admin    | admin@firstbank.com    | password |
+| Approver | approver@firstbank.com | password |
+| Operator | operator@firstbank.com | password |
 
 ### Tenant 2 — RMF23 Cooperative
 
+| Role     | Email              | Password |
+| -------- | ------------------ | -------- |
+| Admin    | admin@rmf23.com    | password |
+| Approver | approver@rmf23.com | password |
+| Operator | operator@rmf23.com | password |
+
+---
+
+## Roles & Permissions
+
+| Action                  | Operator | Approver | Admin |
+| ----------------------- | -------- | -------- | ----- |
+| Create batch            | ✅       | ✅       | ✅    |
+| View own batches        | ✅       | ❌       | ❌    |
+| View all tenant batches | ❌       | ✅       | ✅    |
+| Validate batch          | ✅       | ✅       | ✅    |
+| Submit for approval     | ✅       | ✅       | ✅    |
+| Approve batch           | ❌       | ✅       | ✅    |
+| Reject batch            | ❌       | ✅       | ✅    |
+| Post batch              | ❌       | ❌       | ✅    |
+| Retry failed items      | ❌       | ❌       | ✅    |
+
+> Operators only see batches they created. Approvers and Admins see all batches within their tenant.
+
+---
+
+## Authentication
+
+Quant Core uses Laravel Sanctum token-based authentication.
+
+### Login
+
 ```
-Admin:    admin@rmf23.com    / Blueprint@1995
-Approver: approver@rmf23.com / Blueprint@1995
-Operator: operator@rmf23.com / Blueprint@1995
+POST /api/v1/auth/login
+```
+
+Request:
+
+```json
+{
+    "email": "operator@firstbank.com",
+    "password": "password"
+}
+```
+
+Response:
+
+```json
+{
+    "status": true,
+    "message": "Login successful",
+    "data": {
+        "token": "1|abc123xyz...",
+        "user": {
+            "name": "Operator User",
+            "email": "operator@firstbank.com",
+            "role": "operator"
+        }
+    }
+}
+```
+
+### Using the token
+
+Include the token in all subsequent requests:
+
+```
+Authorization: Bearer 1|abc123xyz...
+Content-Type: application/json
+```
+
+### Get authenticated user
+
+```
+GET /api/v1/auth/user
+```
+
+### Logout
+
+```
+POST /api/v1/auth/logout
+```
+
+Revokes the current token.
+
+---
+
+## Batch Status Reference
+
+| Status             | Description                                  |
+| ------------------ | -------------------------------------------- |
+| `draft`            | Created, not yet validated                   |
+| `validated`        | All items passed validation                  |
+| `pending_approval` | Submitted, awaiting approver decision        |
+| `approved`         | Approved, ready for posting                  |
+| `posting`          | Job dispatched, currently processing         |
+| `posted`           | All items successfully disbursed             |
+| `partially_posted` | Some items posted, some failed               |
+| `rejected`         | Rejected by approver — terminal state        |
+| `failed`           | Posting job exhausted all retries — terminal |
+
+### Status Flow
+
+```
+draft → validated → pending_approval → approved → posting → posted
+                                     → rejected (terminal)
+                                                 → partially_posted (some failed)
+                                                 → failed (job crashed)
 ```
 
 ---
 
-## Sample CSV File
+## Batch Item Status Reference
 
-Save as `sample_disbursement.csv` and use with the CSV upload endpoint.
-
-```csv
-beneficiary_name,account_number,bank_code,amount,narration,external_reference
-Amaka Johnbull,0123456789,044,50000.00,Loan disbursement March 2026,REF_20260301_001
-Chukwuemeka Obi,9876543210,058,75000.00,Loan disbursement March 2026,REF_20260301_002
-Fatima Abdullahi,1122334455,033,100000.00,Loan disbursement March 2026,REF_20260301_003
-Taiwo Adeyemi,5544332211,011,25000.00,Loan disbursement March 2026,REF_20260301_004
-Ngozi Eze,6677889900,057,60000.00,Loan disbursement March 2026,REF_20260301_005
-```
-
-A copy of this file is available at `storage/samples/sample_disbursement.csv`.
+| Status    | Description                                |
+| --------- | ------------------------------------------ |
+| `pending` | Created, not yet validated                 |
+| `valid`   | Passed all validation rules                |
+| `invalid` | Failed validation — see `validation_error` |
+| `posted`  | Successfully disbursed                     |
+| `failed`  | Posting failed — see `posting_error`       |
 
 ---
 
@@ -131,60 +213,13 @@ Content-Type: application/json
 
 ---
 
-### Authentication
-
-**Login**
-
-```
-POST /api/v1/auth/login
-```
-
-```json
-{
-    "email": "operator@firstbank.com",
-    "password": "Blueprint@1995"
-}
-```
-
-Response:
-
-```json
-{
-    "status": true,
-    "message": "Login successful",
-    "data": {
-        "token": "1|abc123...",
-        "user": {
-            "slug": 1,
-            "name": "Operator User",
-            "email": "operator@firstbank.com",
-            "role": "operator"
-        }
-    }
-}
-```
-
-**Get authenticated user**
-
-```
-GET /api/v1/auth/user
-```
-
-**Logout**
-
-```
-POST /api/v1/auth/logout
-```
-
----
-
-### Batch Management
-
-**Create batch — JSON**
+### Create Batch — JSON
 
 ```
 POST /api/v1/batches
 ```
+
+Request:
 
 ```json
 {
@@ -194,88 +229,185 @@ POST /api/v1/batches
             "beneficiary_name": "Amaka Johnbull",
             "account_number": "0123456789",
             "bank_code": "044",
-            "amount": 50000,
+            "amount": 50000.0,
             "narration": "Loan disbursement March 2026",
-            "external_reference": "REF_001"
+            "external_reference": "REF_20260301_001"
         }
     ]
 }
 ```
 
-**Create batch — CSV**
+Response `201`:
 
-```
-POST /api/v1/batches
-Content-Type: multipart/form-data
-
-source: csv
-file: sample_disbursement.csv
-```
-
-**List batches**
-
-```
-GET /api/v1/batches
-GET /api/v1/batches?status=validated
-GET /api/v1/batches?status=approved&per_page=10
-GET /api/v1/batches?source=csv
-GET /api/v1/batches?from=2026-06-01&to=2026-06-07
-```
-
-**Get single batch**
-
-```
-GET /api/v1/batches/{batch_id}
-```
-
-**Get batch items**
-
-```
-GET /api/v1/batches/{batch_id}/items
-GET /api/v1/batches/{batch_id}/items?status=FAILED
-GET /api/v1/batches/{batch_id}/items?status=POSTED
-```
-
-**Get audit trail**
-
-```
-POST /api/v1/batches/{batch_id}/audits
+```json
+{
+    "status": true,
+    "message": "Batch created successfully",
+    "data": {
+        "id": "uuid",
+        "status": "draft",
+        "source": "json",
+        "total_items": 1,
+        "total_amount": "50000.00",
+        "created_at": "2026-06-07T00:00:00.000000Z"
+    }
+}
 ```
 
 ---
 
-### Batch Workflow
-
-**Validate batch**
+### Create Batch — CSV
 
 ```
-GET /api/v1/batches/{batch_id}/validate
+POST /api/v1/batches
+Content-Type: multipart/form-data
 ```
 
-Validates all items. Marks each as valid or invalid with error message.
-Batch moves to `validated` only when all items pass.
+| Field  | Value             |
+| ------ | ----------------- |
+| source | csv               |
+| file   | disbursements.csv |
 
-**Submit for approval**
+---
+
+### CSV Format Guide
+
+```csv
+beneficiary_name,account_number,bank_code,amount,narration,external_reference
+Amaka Johnbull,0123456789,044,50000.00,Loan disbursement March 2026,REF_20260301_001
+Chukwuemeka Obi,9876543210,058,75000.00,Loan disbursement March 2026,REF_20260301_002
+Fatima Abdullahi,1122334455,033,100000.00,Loan disbursement March 2026,REF_20260301_003
+Taiwo Adeyemi,5544332211,011,25000.00,Loan disbursement March 2026,REF_20260301_004
+Ngozi Eze,6677889900,057,60000.00,Loan disbursement March 2026,REF_20260301_005
+```
+
+A sample file is available at `storage/samples/sample_disbursement.csv`.
+
+### CSV Field Rules
+
+| Field              | Required | Format                     |
+| ------------------ | -------- | -------------------------- |
+| beneficiary_name   | Yes      | String                     |
+| account_number     | Yes      | Exactly 10 digits          |
+| bank_code          | Yes      | Exactly 3 digits           |
+| amount             | Yes      | Numeric, greater than 0    |
+| narration          | Yes      | String, max 100 characters |
+| external_reference | Yes      | Unique within the batch    |
+
+### CSV Parsing Errors
+
+| Error                   | Cause                             |
+| ----------------------- | --------------------------------- |
+| Missing required column | CSV header row is missing a field |
+| Invalid file format     | File is not a valid CSV           |
+| Empty file              | CSV has no data rows              |
+
+---
+
+### Validate Batch
+
+```
+POST /api/v1/batches/{batch_id}/validate
+```
+
+Validates all items against the rules above. Items already marked `valid`
+are skipped on re-validation.
+
+Response:
+
+```json
+{
+    "status": true,
+    "message": "Batch validated",
+    "data": {
+        "batch_id": "uuid",
+        "status": "validated",
+        "valid_items": 4,
+        "invalid_items": 1
+    }
+}
+```
+
+### Validation Rules Per Item
+
+| Field              | Rule                                       |
+| ------------------ | ------------------------------------------ |
+| beneficiary_name   | Required                                   |
+| account_number     | Required, exactly 10 digits (`/^\d{10}$/`) |
+| bank_code          | Required, exactly 3 digits (`/^\d{3}$/`)   |
+| amount             | Required, numeric, greater than 0          |
+| narration          | Required, max 100 characters               |
+| external_reference | Required, unique within this batch         |
+
+### Validation Error Example
+
+```json
+{
+    "id": "uuid",
+    "status": "invalid",
+    "validation_error": "account_number must be exactly 10 digits, bank_code must be exactly 3 digits"
+}
+```
+
+---
+
+### Submit Batch for Approval
 
 ```
 POST /api/v1/batches/{batch_id}/submit
 ```
 
-Batch must be `validated`. Moves to `pending_approval`.
+Batch must be in `validated` status.
 
-**Approve batch** _(approver or admin role only)_
+Response `200`:
+
+```json
+{
+    "status": true,
+    "message": "Batch submitted for approval",
+    "data": {
+        "id": "uuid",
+        "status": "pending_approval",
+        "submitted_at": "2026-06-07T00:00:00.000000Z"
+    }
+}
+```
+
+---
+
+### Approve Batch
 
 ```
 POST /api/v1/batches/{batch_id}/approve
 ```
 
-Batch must be `pending_approval`. Moves to `approved`.
+Requires `approver` or `admin` role. Batch must be `pending_approval`.
 
-**Reject batch** _(approver or admin role only)_
+Response `200`:
+
+```json
+{
+    "status": true,
+    "message": "Batch approved successfully",
+    "data": {
+        "id": "uuid",
+        "status": "approved",
+        "approved_at": "2026-06-07T00:00:00.000000Z"
+    }
+}
+```
+
+---
+
+### Reject Batch
 
 ```
 POST /api/v1/batches/{batch_id}/reject
 ```
+
+Requires `approver` or `admin` role. Batch must be `pending_approval`.
+
+Request:
 
 ```json
 {
@@ -283,63 +415,235 @@ POST /api/v1/batches/{batch_id}/reject
 }
 ```
 
-Batch moves to `rejected`. Terminal state — no further actions.
+Response `200`:
 
-**Post batch** _(admin role only)_
+```json
+{
+    "status": true,
+    "message": "Batch rejected",
+    "data": {
+        "id": "uuid",
+        "status": "rejected",
+        "rejection_reason": "Invalid account numbers in items 2 and 4",
+        "rejected_at": "2026-06-07T00:00:00.000000Z"
+    }
+}
+```
+
+---
+
+### Post Batch
 
 ```
 POST /api/v1/batches/{batch_id}/post
 ```
 
-Batch must be `approved`. Returns 202 immediately.
-Posting happens asynchronously via queued job.
-Protected by idempotency key — cannot be posted twice.
+Requires `admin` role. Batch must be `approved`.
 
-**Retry failed items** _(admin role only)_
+Returns 202 immediately. Posting happens asynchronously via queued job.
+Protected by idempotency key — calling this twice returns an error.
+
+Response `202`:
+
+```json
+{
+    "status": true,
+    "message": "Batch posting initiated",
+    "data": {
+        "batch_id": "uuid"
+    }
+}
+```
+
+---
+
+### Retry Failed Items
 
 ```
 POST /api/v1/batches/{batch_id}/retry
 ```
 
-Only retries items with `failed` status.
-Never reposts items already marked `posted`.
+Requires `admin` role. Batch must be `posted` or `partially_posted`.
 
----
+Only retries items with `failed` status. Items already marked `posted`
+are never reprocessed.
 
-## Batch Status Flow
+Response `202`:
 
-```
-draft → validated → pending_approval → approved → posting → posted
-                                     → rejected (terminal)
-posted → partially_posted (if any items failed)
-```
-
----
-
-## Batch Item Statuses
-
-```
-pending          ← created, not yet validated
-valid            ← passed validation
-invalid          ← failed validation (see validation_error)
-posted           ← successfully disbursed
-failed           ← posting failed (see posting_error)
+```json
+{
+    "status": true,
+    "message": "Retry initiated for failed items"
+}
 ```
 
 ---
 
-## Validation Rules
-
-Per line item:
+### Get All Batches
 
 ```
-beneficiary_name    required
-account_number      required, exactly 10 digits
-bank_code           required, exactly 3 digits
-amount              required, numeric, greater than 0
-narration           required, max 100 characters
-external_reference  required, unique within the batch
+GET /api/v1/batches
+GET /api/v1/batches?status=validated
+GET /api/v1/batches?source=csv
+GET /api/v1/batches?from=2026-06-01&to=2026-06-07
+GET /api/v1/batches?per_page=10&page=2
 ```
+
+> Operators see only their own batches. Approvers and Admins see all tenant batches.
+
+### Available Filters
+
+| Filter   | Example             | Description                 |
+| -------- | ------------------- | --------------------------- |
+| status   | `?status=validated` | Filter by batch status      |
+| source   | `?source=csv`       | Filter by source type       |
+| from     | `?from=2026-06-01`  | Created from date           |
+| to       | `?to=2026-06-07`    | Created to date             |
+| per_page | `?per_page=20`      | Items per page (default 20) |
+
+---
+
+### Get Single Batch
+
+```
+GET /api/v1/batches/{batch_id}
+```
+
+Response includes batch summary:
+
+```json
+{
+    "status": true,
+    "data": {
+        "id": "uuid",
+        "status": "partially_posted",
+        "total_items": 5,
+        "total_amount": "310000.00",
+        "summary": {
+            "posted": 4,
+            "failed": 1,
+            "pending": 0,
+            "invalid": 0
+        },
+        "created_by": {
+            "name": "Operator User",
+            "email": "operator@firstbank.com"
+        }
+    }
+}
+```
+
+---
+
+### Get Batch Items
+
+```
+GET /api/v1/batches/{batch_id}/items
+GET /api/v1/batches/{batch_id}/items?status=failed
+GET /api/v1/batches/{batch_id}/items?status=posted
+```
+
+| Filter | Values                                  |
+| ------ | --------------------------------------- |
+| status | pending, valid, invalid, posted, failed |
+
+Response:
+
+```json
+{
+    "status": true,
+    "data": [
+        {
+            "id": 1,
+            "beneficiary_name": "Amaka Johnbull",
+            "account_number": "0123456789",
+            "bank_code": "044",
+            "amount": "50000.00",
+            "status": "failed",
+            "posting_error": "Bank API timeout: could not reach provider",
+            "posted_at": null
+        }
+    ],
+    "meta": {
+        "current_page": 1,
+        "per_page": 20,
+        "total": 1,
+        "last_page": 1
+    }
+}
+```
+
+---
+
+### Get Audit Trail
+
+```
+GET /api/v1/batches/{batch_id}/audits
+```
+
+Response:
+
+```json
+{
+    "status": true,
+    "data": [
+        {
+            "action": "CREATED",
+            "performed_by": "Operator User",
+            "metadata": { "total_items": 5, "source": "csv" },
+            "created_at": "2026-06-07T00:00:00.000000Z"
+        },
+        {
+            "action": "VALIDATED",
+            "performed_by": "Operator User",
+            "metadata": { "valid": 4, "invalid": 1 },
+            "created_at": "2026-06-07T00:01:00.000000Z"
+        },
+        {
+            "action": "APPROVED",
+            "performed_by": "Approver User",
+            "metadata": {},
+            "created_at": "2026-06-07T00:05:00.000000Z"
+        },
+        {
+            "action": "POSTED",
+            "performed_by": "system",
+            "metadata": { "posted": 4, "failed": 1 },
+            "created_at": "2026-06-07T00:06:00.000000Z"
+        }
+    ]
+}
+```
+
+---
+
+## HTTP Status Codes Reference
+
+| Code | Meaning                                              |
+| ---- | ---------------------------------------------------- |
+| 200  | Success                                              |
+| 201  | Resource created                                     |
+| 202  | Accepted — async job dispatched                      |
+| 400  | Bad request — invalid action for current batch state |
+| 401  | Unauthenticated — missing or invalid token           |
+| 403  | Forbidden — insufficient role                        |
+| 404  | Batch not found                                      |
+| 409  | Conflict — idempotency violation (already posted)    |
+| 503  | Server error — unexpected failure                    |
+
+---
+
+## Common Errors & Troubleshooting
+
+| Error                             | Cause                       | Fix                                |
+| --------------------------------- | --------------------------- | ---------------------------------- |
+| Batch must be VALIDATED           | Wrong status for action     | Validate batch first               |
+| Batch already submitted           | Duplicate submit            | Check batch status                 |
+| Only approvers can perform action | Wrong role                  | Login as approver or admin         |
+| Batch already posted              | Idempotency key exists      | Batch was already dispatched       |
+| No failed items to retry          | Nothing to retry            | Check item statuses                |
+| Database file does not exist      | SQLite path issue in Docker | Run `docker compose up --build`    |
+| Queue not processing              | Worker not running          | Check `quant-core-queue` container |
 
 ---
 
@@ -351,36 +655,38 @@ Every database table includes a `tenant_id` column. A `TenantScope` global
 scope is applied to all models, automatically filtering every query to the
 authenticated user's tenant. No cross-tenant data leakage is possible.
 
-```php
-// TenantScope applied automatically to every query
-Batch::all(); // only returns batches for the current tenant
-```
-
 ### Async Posting
 
 Batch posting is handled by `PostBatchJob` dispatched to the database queue.
-The API returns 202 immediately without waiting for posting to complete.
-The queue worker processes each line item individually, recording success
-or failure per item.
+The API returns 202 immediately. The queue worker processes each line item
+individually, recording success or failure per item.
+
+Job retry configuration:
+
+```
+$tries   = 3
+$timeout = 60 seconds
+$backoff = [10, 30, 60] seconds (exponential)
+```
+
+If the job exhausts all retries, `failed()` is called and batch status is
+set to `FAILED`. The audit trail records the failure with the exception message.
 
 ### Retry Logic
 
-Retry dispatches the same `PostBatchJob`. The job filters items by status:
+Retry dispatches the same `PostBatchJob`. The job filters:
 
-```
+```php
 whereIn('status', ['valid', 'failed'])
 ```
 
-Items already marked `posted` are never reprocessed. Safe to retry multiple times.
+Items already marked `posted` are never reprocessed.
 
 ### Audit Trail
 
-Every state change is logged to `audit_trails` with:
-
-- tenant_id, batch_id, user_id
-- action (created, validated, submitted, approved, rejected, posted, retried)
-- metadata (contextual data per action)
-- timestamp
+Every state change is logged with tenant_id, batch_id, user_id, action,
+metadata, and timestamp. The queue worker passes its user ID explicitly
+since `auth()` is unavailable in background jobs.
 
 ---
 
@@ -393,15 +699,14 @@ stored in the `idempotency_keys` table.
 key format: post_batch_{batch_id}
 ```
 
-Before dispatching the posting job:
+Before dispatching:
 
-1. Check if key exists for this tenant
-2. If exists → return error (already posted)
-3. If not → store key + update status + dispatch job (wrapped in DB transaction)
+1. Check if key exists for this tenant — return 409 if yes
+2. Store key + update status in DB transaction
+3. Dispatch job after transaction commits
 
-The key creation and status update happen in the same database transaction.
 If the job dispatch fails after the transaction, the key prevents a second
-dispatch. If needed, an admin can delete the idempotency key and retry.
+dispatch. This guarantees at-most-once dispatch even under failure conditions.
 
 ---
 
@@ -409,6 +714,8 @@ dispatch. If needed, an admin can delete the idempotency key and retry.
 
 ```
 app/
+├── Actions/Batch/
+│   └── CreateBatch.php              ← single-purpose batch creation action
 ├── Http/
 │   ├── Controllers/
 │   │   ├── AuthController.php
@@ -437,6 +744,8 @@ app/
 │       └── AuditTrailService.php
 ├── Jobs/
 │   └── PostBatchJob.php
+├── Exceptions/
+│   └── BatchException.php
 └── Enums/
     ├── BatchStatus.php
     └── BatchStatusItem.php
@@ -447,44 +756,43 @@ app/
 ## Assumptions and Tradeoffs
 
 **SQLite over PostgreSQL**
-Chosen per assessment requirement for self-contained, filesystem-backed
-persistence. SQLite runs inside the container with no external dependencies.
-In production this would be PostgreSQL with connection pooling.
+Chosen per assessment requirement. In production this would be PostgreSQL
+with connection pooling and read replicas.
 
 **FakePostingService**
-Real bank API integration was not required. The fake service simulates
-10% failure and 10% timeout rates via configurable environment variables.
-In production this would call Paystack, Flutterwave, or NIBSS.
+Simulates 10% failure and 10% timeout rates via configurable env vars.
+In production this would integrate with Paystack, Flutterwave, or NIBSS.
 
 **Role-based access without a permissions table**
-Roles are stored as a string enum on the users table (operator, approver, admin).
-A full RBAC system with a permissions table would be more flexible but adds
-complexity beyond what this assessment requires.
+Roles stored as string enum (operator, approver, admin). A full RBAC
+system would be more flexible but adds complexity beyond this assessment.
 
 **Batch validation as a separate step**
-Validation is intentionally separated from creation. This allows operations
-users to upload a batch, fix individual items externally, and re-validate
-without recreating the entire batch.
+Intentionally separated from creation. Operators can upload, fix items
+externally, and re-validate without recreating the entire batch.
 
-**Re-validation only processes invalid items**
-Once an item is marked valid it is not re-validated on subsequent runs.
-This prevents unnecessary processing and avoids overwriting correct items.
+**Re-validation skips valid items**
+Once marked valid an item is not re-validated. Prevents overwriting
+correct items on subsequent validation runs.
+
+**Operator batch visibility**
+Operators only see batches they created. Approvers and admins see all
+batches within their tenant. Enforced via `visibleTo()` model scope.
 
 ---
 
 ## What I Would Improve With More Time
 
-- Replace FakePostingService with a real bank API integration
+- Replace FakePostingService with real bank API (Paystack/NIBSS)
 - Add webhook notifications when batch posting completes
-- Add a CSV template download endpoint
-- Implement a full RBAC permissions system
+- Add CSV template download endpoint
+- Implement full RBAC permissions table
 - Add rate limiting on API endpoints
 - Write comprehensive unit and integration tests
-- Add batch expiry — auto-reject batches pending approval for too long
+- Add batch expiry — auto-reject batches pending approval too long
 - Add soft deletes on batches for audit compliance
-- Add a force-retry mechanism for FAILED batches that clears
-  the idempotency key after admin confirmation, with safeguards
-  against partial double-posting
+- Add force-retry mechanism for FAILED batches with idempotency
+  key clearance and admin confirmation safeguards
 
 ---
 
@@ -493,19 +801,9 @@ This prevents unnecessary processing and avoids overwriting correct items.
 As requested by the assessment, the following areas involved AI assistance:
 
 - **Docker setup** — Dockerfile and docker-compose.yml configuration,
-  specifically the entrypoint setup and SQLite path resolution between
+  specifically entrypoint setup and SQLite path resolution between
   host and container environments.
 
-All business logic, domain modeling, service architecture, tenant isolation
-strategy, validation rules, approval workflow, idempotency implementation,
-and audit trail design were written independently.
-
----
-
-## Health Check
-
-```
-GET /health
-```
-
-No authentication required. Returns API status and version.
+All business logic, domain modeling, service architecture, tenant isolation,
+validation rules, approval workflow, idempotency, and audit trail design
+were written independently.
