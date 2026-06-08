@@ -97,6 +97,7 @@ Two tenants are seeded automatically on startup.
 | Reject batch            | ❌       | ✅       | ✅    |
 | Post batch              | ❌       | ❌       | ✅    |
 | Retry failed items      | ❌       | ❌       | ✅    |
+| Delete batch            | ❌       | ❌       | ✅    |
 
 > Operators only see batches they created. Approvers and Admins see all batches within their tenant.
 
@@ -575,6 +576,35 @@ Response:
 
 ---
 
+### Delete Batch
+
+```
+DELETE /api/v1/batches/{batch_id}
+```
+
+Requires `admin` role. Only batches in `draft` or `rejected` status can be deleted.
+Batches that have been submitted, approved, posted, or partially posted cannot be deleted.
+
+Response `200`:
+
+```json
+{
+    "status": true,
+    "message": "Batch deleted successfully"
+}
+```
+
+Error when status is invalid:
+
+```json
+{
+    "status": false,
+    "message": "Only draft or rejected batches can be deleted"
+}
+```
+
+---
+
 ### Get Audit Trail
 
 ```
@@ -714,18 +744,39 @@ dispatch. This guarantees at-most-once dispatch even under failure conditions.
 
 ```
 app/
-├── Actions/Batch/
-│   └── CreateBatch.php              ← single-purpose batch creation action
+├── Actions/
+│   ├── Auth/
+│   │   └── CreateLogin.php              ← login action
+│   └── Batch/
+│       └── CreateBatch.php              ← bulk batch creation with transaction
+├── Enums/
+│   ├── BatchStatus.php                  ← batch status state machine
+│   └── BatchStatusItem.php              ← individual item status
+├── Exceptions/
+│   ├── BatchException.php               ← known business rule violations (400)
+│   ├── BuildResponse.php                ← response builder
+│   └── ValidationResponseException.php ← validation error formatting
 ├── Http/
 │   ├── Controllers/
 │   │   ├── AuthController.php
 │   │   ├── BatchController.php
-│   │   └── AuditTrailController.php
+│   │   ├── BatchItemController.php
+│   │   ├── AuditTrailController.php
+│   │   └── TenantController.php
 │   ├── Requests/
-│   │   ├── CreateBatchRequest.php
+│   │   ├── CreateBatchRequest.php       ← conditional rules for JSON and CSV
+│   │   ├── LoginRequest.php
 │   │   └── RejectBatchRequest.php
+│   ├── Resources/
+│   │   ├── BatchResource.php
+│   │   ├── BatchItemResource.php
+│   │   ├── AuditLogResource.php
+│   │   ├── TenantResource.php
+│   │   └── UserResource.php
 │   └── Traits/
-│       └── ResponseTrait.php
+│       └── ResponseTrait.php            ← consistent JSON response formatting
+├── Jobs/
+│   └── PostBatchJob.php                 ← async posting with retry and backoff
 ├── Models/
 │   ├── Tenant.php
 │   ├── User.php
@@ -733,22 +784,17 @@ app/
 │   ├── BatchItem.php
 │   ├── AuditTrail.php
 │   ├── IdempotencyKey.php
-│   └── Scopes/TenantScope.php
-├── Services/
-│   ├── Batch/
-│   │   ├── BatchService.php
-│   │   ├── BatchValidationService.php
-│   │   ├── BatchParserService.php
-│   │   └── FakePostingService.php
-│   └── AuditTrails/
-│       └── AuditTrailService.php
-├── Jobs/
-│   └── PostBatchJob.php
-├── Exceptions/
-│   └── BatchException.php
-└── Enums/
-    ├── BatchStatus.php
-    └── BatchStatusItem.php
+│   └── Scopes/TenantScope.php           ← global tenant isolation scope
+├── Providers/
+│   └── AppServiceProvider.php
+└── Services/
+    ├── AuditTrails/
+    │   └── AuditTrailService.php        ← centralised audit logging
+    └── Batch/
+        ├── BatchService.php             ← orchestrates all batch operations
+        ├── BatchValidationService.php   ← per-item validation rules
+        ├── BatchParserService.php       ← CSV and JSON parsing
+        └── FakePostingService.php       ← stubbed bank API with failure simulation
 ```
 
 ---
@@ -803,7 +849,9 @@ As requested by the assessment, the following areas involved AI assistance:
 - **Docker setup** — Dockerfile and docker-compose.yml configuration,
   specifically entrypoint setup and SQLite path resolution between
   host and container environments.
+- **README writing** — Structure, formatting, and documentation content
+  was drafted with AI assistance based on the actual implementation.
 
 All business logic, domain modeling, service architecture, tenant isolation,
-validation rules, approval workflow, idempotency, and audit trail design
-were written independently.
+validation rules, approval workflow, idempotency, audit trail design,
+and all PHP code were written independently.

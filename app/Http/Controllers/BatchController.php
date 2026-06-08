@@ -87,38 +87,41 @@ class BatchController extends Controller
     }
 
 
-    public function submitBatch(Batch $batch, BatchService $batchService)
+    public function submitBatch(Batch $batch)
     {
 
-        $batchService->submitBatch($batch);
-        return $this->okResponse('Batch submitted successfully', new BatchResource($batch->load('items')));
+        $this->batchService->submitBatch($batch);
+        $batch = $batch->load('items');
+        return $this->okResponse('Batch submitted successfully', new BatchResource($batch));
     }
 
-    public function approveBatch(Batch $batch, BatchService $batchService)
+    public function approveBatch(Batch $batch)
     {
-        $batchService->approveBatch($batch);
-        return $this->okResponse('Batch approved successfully', new BatchResource($batch->load('items')));
+        $this->batchService->approveBatch($batch);
+        $batch = $batch->load('items');
+        return $this->okResponse('Batch approved successfully', new BatchResource($batch));
     }
 
 
-    public function rejectBatch(Batch $batch, RejectBatchRequest $request, BatchService $batchService)
+    public function rejectBatch(Batch $batch, RejectBatchRequest $request)
     {
 
         $validated = $request->validated();
-        $batchService->rejectBatch($batch, $validated['reason']);
-        return $this->okResponse('Batch rejected successfully', new BatchResource($batch->load('items')));
+        $this->batchService->rejectBatch($batch, $validated['reason']);
+        $batch = $batch->load('items');
+        return $this->okResponse('Batch rejected successfully', new BatchResource($batch));
     }
 
-    public function postBatch(Batch $batch, BatchService $batchService)
+    public function postBatch(Batch $batch)
     {
-        $batchService->postBatch($batch);
-        return $this->createdResponse('Batch posting initiated', new BatchResource($batch->load('items')));
+        $this->batchService->postBatch($batch);
+        $batch = $batch->load('items');
+        return $this->createdResponse('Batch posting initiated', new BatchResource($batch));
     }
 
-
-    public function retryBatch(Batch $batch, BatchService $batchService)
+    public function deleteBatch(Batch $batch)
     {
-        $batchService->retryBatch($batch);
-        return $this->createdResponse('Batch posting initiated', new BatchResource($batch->load('items')));
+        $this->batchService->deleteBatch($batch);
+        return $this->okResponse('Batch deleted successfully');
     }
 }

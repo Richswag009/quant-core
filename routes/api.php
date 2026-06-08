@@ -38,6 +38,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/', [BatchController::class, 'createBatch']);
             Route::get('/', [BatchController::class, 'getAllBatches']);
             Route::get('{batch}', [BatchController::class, 'getBatch']);
+            Route::delete('{batch}', [BatchController::class, 'deleteBatch']);
             Route::get('{batch}/items', [BatchController::class, 'getBatchItems']);
             Route::post('{batch}/validate', [BatchController::class, 'validateBatch']);
             Route::post('{batch}/submit', [BatchController::class, 'submitBatch']);

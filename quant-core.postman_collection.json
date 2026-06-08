@@ -289,6 +289,44 @@
           "response": []
         },
         {
+          "name": "delete bactch by id",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "3|GRKnVXWkFaYI6ldDz4EvzhZOHCbVkVu091gZAuOfbac46411",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}batches/{{batch_id}}",
+              "host": [
+                "{{base_url}}batches"
+              ],
+              "path": [
+                "{{batch_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Get batch Items",
           "request": {
             "auth": {
@@ -354,13 +392,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}batches/{{batch_id}}/items",
+              "raw": "{{base_url}}batches/{{batch_id}}/audits",
               "host": [
                 "{{base_url}}batches"
               ],
               "path": [
                 "{{batch_id}}",
-                "items"
+                "audits"
               ]
             }
           },

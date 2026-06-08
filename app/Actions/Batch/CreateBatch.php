@@ -7,14 +7,11 @@ use App\Enums\BatchStatus;
 use App\Enums\BatchStatusItem;
 use App\Models\User;
 use Illuminate\Support\Str;
-use App\Http\Traits\ResponseTrait;
 use App\Models\BatchItem;
 use Illuminate\Support\Facades\DB;
 
 class CreateBatch
 {
-    //
-    use ResponseTrait;
 
     public function __invoke(array $data, User $user)
     {

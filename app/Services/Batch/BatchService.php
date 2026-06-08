@@ -115,6 +115,15 @@ class BatchService
 
         return $batch;
     }
+    public function deleteBatch(Batch $batch)
+    {
+        $this->ensureAdminRole();
+        if ($batch->status !== BatchStatus::DRAFT && $batch->status !== BatchStatus::REJECTED) {
+            throw new BatchException("Only draft or rejected batches can be deleted");
+        }
+        $batch->delete();
+        $this->auditTrail->log($batch, 'deleted');
+    }
 
     public function postBatch(Batch $batch)
     {

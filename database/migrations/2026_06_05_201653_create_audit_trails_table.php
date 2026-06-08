@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('tenant_id')->constrained()->onDelete('cascade');
             $table->foreignId('batch_id')->constrained('batches')->onDelete('cascade');
             $table->foreignId('user_id')->constrained('users')->onDelete('set null');
-            $table->enum('action', ['created', 'validated', 'submitted', 'approved', 'rejected', 'posted', 'retried', 'job_failed', 'batch_validation_failed', 'batch_validated']);
+            $table->enum('action', ['created', 'validated', 'submitted', 'approved', 'rejected', 'posted', 'retried', 'job_failed', 'deleted', 'batch_validation_failed', 'batch_validated']);
             $table->json('metadata')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
