@@ -40,7 +40,7 @@ Full audit trail maintained for every action
 
 ```bash
 git clone git@github.com:Richswag009/quant-core.git
-cd bacthprocessing
+cd quant-core
 ```
 
 ### 2. Start the application

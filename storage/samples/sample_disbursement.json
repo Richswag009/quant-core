@@ -1,0 +1,53 @@
+{
+    "source": "json",
+    "items": [
+        {
+            "beneficiary_name": "Emeka Okonkwo",
+            "account_number": "3056781234",
+            "bank_code": "057",
+            "amount": 150000.0,
+            "narration": "SME loan disbursement Q2 2026",
+            "external_reference": "SME_20260601_001"
+        },
+        {
+            "beneficiary_name": "Aisha Bello",
+            "account_number": "2087654321",
+            "bank_code": "011",
+            "amount": 200000.0,
+            "narration": "SME loan disbursement Q2 2026",
+            "external_reference": "SME_20260601_002"
+        },
+        {
+            "beneficiary_name": "Obinna Nwachukwu",
+            "account_number": "0034567890",
+            "bank_code": "033",
+            "amount": 85000.0,
+            "narration": "SME loan disbursement Q2 2026",
+            "external_reference": "SME_20260601_003"
+        },
+        {
+            "beneficiary_name": "Halima Yusuf",
+            "account_number": "1209876543",
+            "bank_code": "044",
+            "amount": 300000.0,
+            "narration": "SME loan disbursement Q2 2026",
+            "external_reference": "SME_20260601_004"
+        },
+        {
+            "beneficiary_name": "Chidi Eze",
+            "account_number": "invalid-acc",
+            "bank_code": "05",
+            "amount": -5000.0,
+            "narration": "SME loan disbursement Q2 2026",
+            "external_reference": "SME_20260601_005"
+        },
+        {
+            "beneficiary_name": "Funke Adebayo",
+            "account_number": "4456789012",
+            "bank_code": "058",
+            "amount": 120000.0,
+            "narration": "SME loan disbursement Q2 2026",
+            "external_reference": "SME_20260601_006"
+        }
+    ]
+}

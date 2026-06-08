@@ -37,18 +37,18 @@ class PostBatchJob implements ShouldQueue
 
         $items = $this->batch->items()
             ->where('tenant_id', $this->tenantId)
-            ->whereIn('status', [BatchStatusItem::VALID->value, BatchStatusItem::FAILED->value])
+            ->whereIn('status', [BatchStatusItem::VALID, BatchStatusItem::FAILED])
             ->get();
 
         foreach ($items as $item) {
 
             try {
                 $fakePostingService->postBatch($item);
-                $item->status = BatchStatusItem::POSTED->value;
+                $item->status = BatchStatusItem::POSTED;
                 $item->posted_at = now();
                 $item->save();
             } catch (\Throwable $th) {
-                $item->status = BatchStatusItem::FAILED->value;
+                $item->status = BatchStatusItem::FAILED;
                 $item->posting_error = $th->getMessage();
                 $item->save();
             }
@@ -56,21 +56,21 @@ class PostBatchJob implements ShouldQueue
 
         // update batch status after all items are processed
         $hasFailures = $this->batch->items()
-            ->where('status', BatchStatusItem::FAILED->value)
+            ->where('status', BatchStatusItem::FAILED)
             ->exists();
 
         $this->batch->update([
-            'status'    => $hasFailures ? BatchStatus::PARTIALLY_POSTED->value : BatchStatus::POSTED->value,
+            'status'    => $hasFailures ? BatchStatus::PARTIALLY_POSTED : BatchStatus::POSTED,
             'posted_at' => now(),
         ]);
 
-        $postedCount = $this->batch->items()->where('status', BatchStatusItem::POSTED->value)->count();
-        $failedCount = $this->batch->items()->where('status', BatchStatusItem::FAILED->value)->count();
+        $postedCount = $this->batch->items()->where('status', BatchStatusItem::POSTED)->count();
+        $failedCount = $this->batch->items()->where('status', BatchStatusItem::FAILED)->count();
 
         // PostBatchJob
         $auditTrail->log(
             $this->batch,
-            'POSTED',
+            'posted',
             [
                 'posted' => $postedCount,
                 'failed' => $failedCount,
@@ -83,14 +83,14 @@ class PostBatchJob implements ShouldQueue
     {
         // update batch status to reflect complete failure
         $this->batch->update([
-            'status' => BatchStatus::FAILED->value,
+            'status' => BatchStatus::FAILED,
         ]);
 
         // log to audit trail
         $auditTrail = app(AuditTrailService::class);
         $auditTrail->log(
             $this->batch,
-            'JOB_FAILED',
+            'job_failed',
             [
                 "message" => "Posting job failed after {$this->tries} attempts: " . $exception->getMessage()
             ],

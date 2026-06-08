@@ -6,18 +6,30 @@ use App\Http\Traits\ResponseTrait;
 use App\Models\Batch;
 use App\Enums\BatchStatusItem;
 use App\Enums\BatchStatus;
+use App\Exceptions\BatchException;
+// use App\Exceptions\BatchException;
+use App\Services\AuditTrails\AuditTrailService;
 
 class BatchValidationService
 {
 
-    use ResponseTrait;
+    // use ResponseTrait;
+
+    public function __construct(
+        protected AuditTrailService $auditTrail
+    ) {}
 
     public function validateBatch(Batch $batch)
     {
 
-        if ($batch->status !== 'DRAFT') {
-            throw new \Exception("Batch must be in DRAFT status for validation.");
+        if ($batch->status === BatchStatus::VALIDATED) {
+            throw new BatchException("This batch has already been validated and cannot be validated again.");
         }
+
+        if ($batch->status !== BatchStatus::DRAFT) {
+            throw new BatchException("Only batches in DRAFT status can be validated.");
+        }
+
 
         $validCount = 0;
         $invalidCount = 0;
@@ -45,28 +57,24 @@ class BatchValidationService
 
         // 3. Decide batch status
         if ($invalidCount === 0) {
-            $batch->status = BatchStatus::VALIDATED->value;
-            $action = 'BATCH_VALIDATED';
+            $batch->status = BatchStatus::VALIDATED;
+            $action = 'batch_validated';
         } else {
-            $batch->status = BatchStatus::DRAFT->value;
-            $action = 'BATCH_VALIDATION_FAILED';
+            $batch->status = BatchStatus::DRAFT;
+            $action = 'batch_validation_failed';
         }
 
         $batch->save();
 
         // count all valid items including previously validated ones
-        $validCount = $batch->items()->where('status', 'VALID')->count();
-        $invalidCount = $batch->items()->where('status', 'INVALID')->count();
+        $validCount = $batch->items()->where('status', BatchStatusItem::VALID)->count();
+        $invalidCount = $batch->items()->where('status', BatchStatusItem::INVALID)->count();
 
-        // // 4. Audit log
-        // AuditLog::create([
-        //     'batch_id' => $batch->id,
-        //     'action' => $action,
-        //     'metadata' => json_encode([
-        //         'valid' => $validCount,
-        //         'invalid' => $invalidCount,
-        //     ])
-        // ]);
+
+        $this->auditTrail->log($batch, $action, [
+            'valid' => $validCount,
+            'invalid' => $invalidCount,
+        ]);
 
         // 5. Return summary
         return [

@@ -98,7 +98,7 @@ trait ResponseTrait
     /**
      * Return a generic server HTTP error response
      */
-    public function serverErrorResponse(string $string, int $status = 503, ?Exception $exception = null): JsonResponse
+    public function serverErrorResponse(string $string, int $status = 500, ?Exception $exception = null): JsonResponse
     {
         if ($exception !== null) {
             $error = "{$exception->getMessage()}
@@ -146,7 +146,6 @@ trait ResponseTrait
                         'next' => $pagination->nextPageUrl(),
                     ];
                 }
-
             } else {
                 $response_data[$is_successful ? 'data' : 'error'] = $data;
             }

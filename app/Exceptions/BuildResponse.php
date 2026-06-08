@@ -104,6 +104,13 @@ class BuildResponse
         return $this->exception->getResponse();
     }
 
+    protected function handleBatchException(): JsonResponse
+    {
+        return $this->badRequestResponse(
+            $this->exception->getMessage()
+        );
+    }
+
     protected function handleHttpException(): JsonResponse
     {
         return $this->jsonResponse($this->exception->getMessage(), $this->exception->getStatusCode());

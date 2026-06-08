@@ -15,19 +15,20 @@ use Illuminate\Database\Eloquent\Collection;
 class BatchController extends Controller
 {
 
+    public function __construct(
+        protected BatchService $batchService
+    ) {}
 
 
-    public function createBatch(CreateBatchRequest $request, BatchService $batchService)
+    public function createBatch(CreateBatchRequest $request)
     {
         try {
-            $user = $request->user();
-
             // Validate the request data
             $validated = $request->validated();
 
-            $batch = $batchService->createBatch($validated, $request->file('file'));
+            $batch = $this->batchService->createBatch($validated, $request->file('file'));
 
-            return $this->okResponse('login successfully', new BatchResource($batch));
+            return $this->createdResponse('batch created successfully', new BatchResource($batch));
         } catch (\Exception $th) {
             return $this->serverErrorResponse($th->getMessage());
         }
@@ -36,13 +37,11 @@ class BatchController extends Controller
     public function getAllBatches(Request $request)
     {
         try {
-            $user = $request->user();
 
-            $batches = $user->batches()
-                ->filter($request->only(['status', 'source', 'from', 'to']))
-                ->with('items', "creator")
-                ->orderBy('created_at', 'desc')
-                ->paginate($request->get('per_page', 20));
+            $filters = $request->only(['status', 'source', 'from', 'to']);
+            $per_page =  $request->get('per_page', 20);
+
+            $batches = $this->batchService->getAllBatches($filters, $per_page);
 
             return $this->okResponse('fetched all batches successfully', BatchResource::collection($batches));
         } catch (\Exception $th) {
@@ -55,7 +54,11 @@ class BatchController extends Controller
         try {
             $user = auth()->user();
 
-            return $this->okResponse('fetched batch successfully', new BatchResource($batch->load("creator")));
+            if ($user->role === 'operator' && $batch->created_by !== $user->id) {
+                return $this->forbiddenResponse("You do not have access to this batch");
+            }
+
+            return $this->okResponse('fetched batch successfully', new BatchResource($batch->load(["creator", 'approver'])));
         } catch (\Exception $th) {
             return $this->serverErrorResponse("something went wrong");
         }
@@ -77,67 +80,44 @@ class BatchController extends Controller
 
     public function validateBatch(Batch $batch, BatchValidationService $validationService)
     {
-        try {
+        $result = $validationService->validateBatch($batch);
 
-            $result = $validationService->validateBatch($batch);
-
-            return $this->okResponse('Batch validated successfully', $result);
-        } catch (\Exception $th) {
-            return $this->serverErrorResponse($th->getMessage());
-        }
+        return $this->okResponse('Batch validated successfully', $result);
     }
+
 
     public function submitBatch(Batch $batch, BatchService $batchService)
     {
-        try {
 
-            $batchService->submitBatch($batch);
-            return $this->okResponse('Batch submitted successfully', new BatchResource($batch->load('items')));
-        } catch (\Exception $th) {
-            return $this->serverErrorResponse($th->getMessage());
-        }
+        $batchService->submitBatch($batch);
+        return $this->okResponse('Batch submitted successfully', new BatchResource($batch->load('items')));
     }
 
     public function approveBatch(Batch $batch, BatchService $batchService)
     {
-        try {
-
-            $batchService->approveBatch($batch);
-            return $this->okResponse('Batch approved successfully', new BatchResource($batch->load('items')));
-        } catch (\Exception $th) {
-            return $this->serverErrorResponse($th->getMessage());
-        }
+        $batchService->approveBatch($batch);
+        return $this->okResponse('Batch approved successfully', new BatchResource($batch->load('items')));
     }
 
 
     public function rejectBatch(Batch $batch, RejectBatchRequest $request, BatchService $batchService)
     {
-        try {
-            $batchService->rejectBatch($batch, $request->reason);
-            return $this->okResponse('Batch rejected successfully', new BatchResource($batch->load('items')));
-        } catch (\Exception $th) {
-            return $this->serverErrorResponse($th->getMessage());
-        }
+
+        $validated = $request->validated();
+        $batchService->rejectBatch($batch, $validated['reason']);
+        return $this->okResponse('Batch rejected successfully', new BatchResource($batch->load('items')));
     }
 
     public function postBatch(Batch $batch, BatchService $batchService)
     {
-        try {
-            $batchService->postBatch($batch);
-            return $this->createdResponse('Batch posting initiated', new BatchResource($batch->load('items')));
-        } catch (\Exception $th) {
-            return $this->serverErrorResponse($th->getMessage());
-        }
+        $batchService->postBatch($batch);
+        return $this->createdResponse('Batch posting initiated', new BatchResource($batch->load('items')));
     }
+
 
     public function retryBatch(Batch $batch, BatchService $batchService)
     {
-        try {
-            $user = auth()->user();
-            $batchService->retryBatch($batch);
-            return $this->createdResponse('Batch posting initiated', new BatchResource($batch->load('items')));
-        } catch (\Exception $th) {
-            return $this->serverErrorResponse($th->getMessage());
-        }
+        $batchService->retryBatch($batch);
+        return $this->createdResponse('Batch posting initiated', new BatchResource($batch->load('items')));
     }
 }

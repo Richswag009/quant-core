@@ -34,7 +34,7 @@ class TenantSeeder extends Seeder
                 ['email' => 'admin@' . $tenant->code . '.com'],
                 [
                     'name'      => 'Admin User',
-                    'password'  => Hash::make('Blueprint@1995'),
+                    'password'  => Hash::make('password'),
                     'slug' => \Illuminate\Support\Str::uuid(),
                     'tenant_id' => $tenant->id,
                     'role'      => 'admin',
@@ -45,7 +45,7 @@ class TenantSeeder extends Seeder
                 ['email' => 'approver@' . $tenant->code . '.com'],
                 [
                     'name'      => 'Approver User',
-                    'password'  => Hash::make('Blueprint@1995'),
+                    'password'  => Hash::make('password'),
                     'slug' => \Illuminate\Support\Str::uuid(),
                     'tenant_id' => $tenant->id,
                     'role'      => 'approver',
@@ -56,7 +56,7 @@ class TenantSeeder extends Seeder
                 ['email' => 'operator@' . $tenant->code . '.com'],
                 [
                     'name'      => 'Operator User',
-                    'password'  => Hash::make('Blueprint@1995'),
+                    'password'  => Hash::make('password'),
                     'tenant_id' => $tenant->id,
                     'slug' => \Illuminate\Support\Str::uuid(),
                     'role'      => 'operator',

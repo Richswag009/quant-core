@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 use App\Models\Scopes\TenantScope;
 use Illuminate\Database\Eloquent\Builder;
+use App\Enums\BatchStatus;
+use App\Enums\BatchStatusItem;
 
 class Batch extends Model
 {
@@ -20,6 +22,12 @@ class Batch extends Model
         "total_items",
         "total_amount",
     ];
+
+    protected $casts = [
+        'status' => BatchStatus::class,
+    ];
+
+
 
     protected static function booted()
     {
@@ -73,10 +81,20 @@ class Batch extends Model
             : $this->items()->get();
 
         return [
-            'posted'  => $items->where('status', 'POSTED')->count(),
-            'failed'  => $items->where('status', 'FAILED')->count(),
-            'pending' => $items->where('status', 'PENDING')->count(),
-            'invalid' => $items->where('status', 'INVALID')->count(),
+            'posted'  => $items->where('status', BatchStatusItem::POSTED)->count(),
+            'failed'  => $items->where('status', BatchStatusItem::FAILED)->count(),
+            'pending' => $items->where('status', BatchStatusItem::PENDING)->count(),
+            'invalid' => $items->where('status', BatchStatusItem::INVALID)->count(),
+            'valid' => $items->where('status', BatchStatusItem::VALID)->count(),
         ];
+    }
+
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->role === 'operator') {
+            return $query->where('created_by', $user->id);
+        }
+        // approvers and admins see all tenant batches
+        return $query;
     }
 }

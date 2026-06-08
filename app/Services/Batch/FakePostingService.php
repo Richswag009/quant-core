@@ -6,7 +6,7 @@ use App\Models\Batch;
 use App\Models\BatchItem;
 use App\Enums\BatchStatusItem;
 use App\Enums\BatchStatus;
-
+use Exception;
 
 class FakePostingService
 {
@@ -17,17 +17,17 @@ class FakePostingService
         $timeoutRate = config('services.posting.timeout_rate', 0.10);
         $failureRate = config('services.posting.failure_rate', 0.20);
 
-        // 10% timeout simulation
-        if ($random <= 0.10) {
-            sleep(5); // sleep 5 seconds to simulate slow bank API
+        $random = mt_rand(1, 100) / 100;
+
+        if ($random <= $timeoutRate) {
+            sleep(5);
+            throw new \Exception("Timeout");
         }
 
-        // 20% failure simulation
-        if ($random <= 0.20) {
-            throw new \Exception("Bank API timeout: could not reach provider");
+        if ($random <= ($timeoutRate + $failureRate)) {
+            throw new \Exception("Failure");
         }
 
-        // 70% success
         return true;
     }
 }

@@ -26,6 +26,13 @@ class BatchResource extends JsonResource
                 'name' => $this->creator->name,
                 'email' => $this->creator->email,
             ]),
+            'created_at' => $this->created_at,
+            'approved_by' => $this->whenLoaded('approver', fn() => [
+                'slug'   => $this->approver->slug,
+                'name' => $this->approver->name,
+                'email' => $this->approver->email,
+            ]),
+            'approved_at' => $this->approved_at,
             "summary" => $this->summary,
             'items' => BatchItemResource::collection($this->whenLoaded('items'))
         ];

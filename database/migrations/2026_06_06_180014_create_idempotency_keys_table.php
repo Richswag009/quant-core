@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('tenant_id')->constrained()->onDelete('cascade');
             $table->string("key")->unique();
             $table->string('action');
+            $table->string('status')->default('pending');
             $table->timestamps();
         });
     }

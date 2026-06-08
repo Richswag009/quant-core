@@ -1,0 +1,615 @@
+{
+  "info": {
+    "_postman_id": "8c899487-1f97-47f5-abad-5563e8834df4",
+    "name": "quant-core",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "21416588"
+  },
+  "item": [
+    {
+      "name": "auth",
+      "item": [
+        {
+          "name": "login user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\":\"admin@rmf23.com\",\n    \"password\":\"Blueprint@1995\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}auth/login",
+              "host": [
+                "{{base_url}}auth"
+              ],
+              "path": [
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "logout user",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "17|N5ftnJinLIHPyJN75gL5wlyptsA7AOfSMoQPkLl19f70bea5",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\":\"admin@firstbank.com\",\n    \"password\":\"Blueprint@1995\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://bacthprocessing.test/api/v1/auth/logout",
+              "protocol": "http",
+              "host": [
+                "bacthprocessing",
+                "test"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get user profiile",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\":\"admin@firstbank.com\",\n    \"password\":\"Blueprint@1995\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://bacthprocessing.test/api/v1/auth/user",
+              "protocol": "http",
+              "host": [
+                "bacthprocessing",
+                "test"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "user"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "batches",
+      "item": [
+        {
+          "name": "upload batch",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source\": \"json\",\n  \"items\": [\n    {\n      \"beneficiary_name\": \"Emeka Okonkwo\",\n      \"account_number\": \"3056781234\",\n      \"bank_code\": \"057\",\n      \"amount\": 150000.00,\n      \"narration\": \"SME loan disbursement Q2 2026\",\n      \"external_reference\": \"SME_20260601_001\"\n    },\n    {\n      \"beneficiary_name\": \"Aisha Bello\",\n      \"account_number\": \"2087654321\",\n      \"bank_code\": \"011\",\n      \"amount\": 200000.00,\n      \"narration\": \"SME loan disbursement Q2 2026\",\n      \"external_reference\": \"SME_20260601_002\"\n    },\n    {\n      \"beneficiary_name\": \"Obinna Nwachukwu\",\n      \"account_number\": \"0034567890\",\n      \"bank_code\": \"033\",\n      \"amount\": 85000.00,\n      \"narration\": \"SME loan disbursement Q2 2026\",\n      \"external_reference\": \"SME_20260601_003\"\n    },\n    {\n      \"beneficiary_name\": \"Halima Yusuf\",\n      \"account_number\": \"1209876543\",\n      \"bank_code\": \"044\",\n      \"amount\": 300000.00,\n      \"narration\": \"SME loan disbursement Q2 2026\",\n      \"external_reference\": \"SME_20260601_004\"\n    },\n    {\n      \"beneficiary_name\": \"Chidi Eze\",\n      \"account_number\": \"1243456789\",\n      \"bank_code\": \"052\",\n      \"amount\": 5000.00,\n      \"narration\": \"SME loan disbursement Q2 2026\",\n      \"external_reference\": \"SME_20260601_005\"\n    },\n    {\n      \"beneficiary_name\": \"Funke Adebayo\",\n      \"account_number\": \"4456789012\",\n      \"bank_code\": \"058\",\n      \"amount\": 120000.00,\n      \"narration\": \"SME loan disbursement Q2 2026\",\n      \"external_reference\": \"SME_20260601_006\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}batches",
+              "host": [
+                "{{base_url}}batches"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get all batches",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": []
+            },
+            "url": {
+              "raw": "{{base_url}}batches?source=json",
+              "host": [
+                "{{base_url}}batches"
+              ],
+              "query": [
+                {
+                  "key": "source",
+                  "value": "json"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get batch by id",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}batches/{{batch_id}}",
+              "host": [
+                "{{base_url}}batches"
+              ],
+              "path": [
+                "{{batch_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get batch Items",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}batches/{{batch_id}}/items",
+              "host": [
+                "{{base_url}}batches"
+              ],
+              "path": [
+                "{{batch_id}}",
+                "items"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "batch audit logs",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}batches/{{batch_id}}/items",
+              "host": [
+                "{{base_url}}batches"
+              ],
+              "path": [
+                "{{batch_id}}",
+                "items"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "validate batch by id",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}batches/{{batch_id}}/validate",
+              "host": [
+                "{{base_url}}batches"
+              ],
+              "path": [
+                "{{batch_id}}",
+                "validate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "submit batch by id",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}batches/{{batch_id}}/submit",
+              "host": [
+                "{{base_url}}batches"
+              ],
+              "path": [
+                "{{batch_id}}",
+                "submit"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "approve batch by id",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{approver_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}batches/{{batch_id}}/approve",
+              "host": [
+                "{{base_url}}batches"
+              ],
+              "path": [
+                "{{batch_id}}",
+                "approve"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "reject batch",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{approver_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"reason\":\"this is just the reason\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}batches/{{batch_id}}/reject",
+              "host": [
+                "{{base_url}}batches"
+              ],
+              "path": [
+                "{{batch_id}}",
+                "reject"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "post batch",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "3|GRKnVXWkFaYI6ldDz4EvzhZOHCbVkVu091gZAuOfbac46411",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}batches/{{batch_id}}/post",
+              "host": [
+                "{{base_url}}batches"
+              ],
+              "path": [
+                "{{batch_id}}",
+                "post"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Retry Batch",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "3|GRKnVXWkFaYI6ldDz4EvzhZOHCbVkVu091gZAuOfbac46411",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}batches/{{batch_id}}/retry",
+              "host": [
+                "{{base_url}}batches"
+              ],
+              "path": [
+                "{{batch_id}}",
+                "retry"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

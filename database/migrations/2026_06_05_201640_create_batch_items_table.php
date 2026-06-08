@@ -21,7 +21,7 @@ return new class extends Migration
             $table->double("amount")->nullable();
             $table->string("narration")->nullable();
             $table->string("external_reference")->nullable();
-            $table->enum('status', ['PENDING', 'VALID', 'INVALID', 'PENDING_APPROVAL', 'APPROVED', 'POSTING', 'POSTED', 'REJECTED', "FAILED"])->default('PENDING');
+            $table->enum('status', ['PENDING', 'VALID', 'INVALID', 'POSTING', 'POSTED', "FAILED"])->default('PENDING');
             $table->text("validation_error")->nullable();
             $table->text("posting_error")->nullable();
             $table->timestamp("posted_at")->nullable();

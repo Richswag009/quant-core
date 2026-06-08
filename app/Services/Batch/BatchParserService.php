@@ -5,24 +5,32 @@ namespace App\Services\Batch;
 class BatchParserService
 {
 
-    public function parseCSV($file): array
+    public function parseCSV($file, int $maxRows = 10000): array
     {
         $items = [];
         $handle = fopen($file->getPathname(), 'r');
-        fgetcsv($handle);
-
+        $header = fgetcsv($handle);
+        $expectedColumns = ['beneficiary_name', 'account_number', 'bank_code', "amount", 'narration', 'external_reference'];
+        if ($header !== $expectedColumns) {
+            throw new \InvalidArgumentException('CSV header mismatch');
+        }
+        $rowNum = 1;
         while (($row = fgetcsv($handle)) !== false) {
-            $items[] = [
-                'beneficiary_name'   => $row[0],
-                'account_number'     => $row[1],
-                'bank_code'          => $row[2],
-                'amount'             => $row[3],
-                'narration'          => $row[4],
-                'external_reference' => $row[5],
-            ];
+            if (++$rowNum > $maxRows) {
+                throw new \InvalidArgumentException('CSV exceeds max rows');
+            }
+
+            if (count($row) !== count($expectedColumns)) {
+                throw new \InvalidArgumentException("Row $rowNum: column count mismatch");
+            }
+
+            $items[] = array_combine($expectedColumns, $row);
         }
 
-        fclose($handle);
+        if (empty($items)) {
+            throw new \InvalidArgumentException('CSV is empty');
+        }
+
         return $items;
     }
 }

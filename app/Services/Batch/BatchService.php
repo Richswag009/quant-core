@@ -7,6 +7,7 @@ use App\Models\BatchItem;
 use App\Enums\BatchStatusItem;
 use App\Enums\BatchStatus;
 use App\Actions\Batch\CreateBatch;
+use App\Exceptions\BatchException;
 use App\Http\Traits\ResponseTrait;
 use App\Jobs\PostBatchJob;
 use App\Models\IdempotencyKey;
@@ -22,7 +23,8 @@ class BatchService
 
     public function __construct(
         protected BatchParserService $batchParserService,
-        protected AuditTrailService $auditTrail
+        protected AuditTrailService $auditTrail,
+        protected CreateBatch $createBatch
     ) {}
 
 
@@ -31,7 +33,6 @@ class BatchService
     {
 
         $user = auth()->user();
-
         $createBatch = app(CreateBatch::class);
 
         $data['items'] = $data['source'] === 'csv'
@@ -40,7 +41,7 @@ class BatchService
 
         $batch = $createBatch($data, $user);
 
-        $this->auditTrail->log($batch, 'CREATED', [
+        $this->auditTrail->log($batch, 'created', [
             'total_items' => $batch->total_items,
             'total_amount' => $batch->total_amount,
             'source'      => $batch->source,
@@ -52,30 +53,46 @@ class BatchService
     // submit for approval
     public function submitBatch(Batch $batch): Batch
     {
-        if ($batch->status !== BatchStatus::VALIDATED->value) {
-            throw new \Exception("Batch must be VALIDATED before submission");
+        if ($batch->status === BatchStatus::PENDING_APPROVAL) {
+            throw new BatchException("Batch has been submitted already");
         }
-        $batch->status = BatchStatus::PENDING_APPROVAL->value;
+
+        if ($batch->status !== BatchStatus::VALIDATED) {
+            throw new BatchException("Batch must be VALIDATED before submission");
+        }
+        $batch->status = BatchStatus::PENDING_APPROVAL;
         $batch->submitted_at = now();
         $batch->save();
 
-        $this->auditTrail->log($batch, 'SUBMITTED');
+        $this->auditTrail->log($batch, 'submitted');
         return $batch;
     }
+
+    public function getAllBatches(array $filters = [], int $perPage = 20)
+    {
+        $user = auth()->user();
+
+        return Batch::visibleTo($user)
+            ->filter($filters)
+            ->with(['items', 'creator'])
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
+    }
+
 
     // approve
     public function approveBatch(Batch $batch): Batch
     {
         $this->ensureApproverRole();
-        if ($batch->status !== BatchStatus::PENDING_APPROVAL->value) {
+        if ($batch->status !== BatchStatus::PENDING_APPROVAL) {
             throw new \Exception("Batch must be PENDING_APPROVAL to approve");
         }
-        $batch->status = BatchStatus::APPROVED->value;
+        $batch->status = BatchStatus::APPROVED;
         $batch->approved_by = auth()->id();
         $batch->approved_at = now();
         $batch->save();
 
-        $this->auditTrail->log($batch, 'APPROVED');
+        $this->auditTrail->log($batch, 'approved');
         return $batch;
     }
 
@@ -83,16 +100,16 @@ class BatchService
     public function rejectBatch(Batch $batch, string $reason): Batch
     {
         $this->ensureApproverRole();
-        if ($batch->status !== BatchStatus::PENDING_APPROVAL->value) {
-            throw new \Exception("Batch must be PENDING_APPROVAL to reject");
+        if ($batch->status !== BatchStatus::PENDING_APPROVAL) {
+            throw new BatchException("Batch must be PENDING_APPROVAL to reject");
         }
-        $batch->status = BatchStatus::REJECTED->value;
+        $batch->status = BatchStatus::REJECTED;
         $batch->rejection_reason = $reason;
         $batch->rejected_by = auth()->id();
         $batch->rejected_at = now();
         $batch->save();
 
-        $this->auditTrail->log($batch, 'REJECTED', [
+        $this->auditTrail->log($batch, 'rejected', [
             'reason' => $reason,
         ]);
 
@@ -111,11 +128,11 @@ class BatchService
             ->exists();
 
         if ($exists) {
-            throw new \Exception("Batch has already been submitted for posting");
+            throw new BatchException("Batch has already been submitted for posting");
         }
 
-        if ($batch->status !== BatchStatus::APPROVED->value) {
-            throw new \Exception("Only approved batches can be posted");
+        if ($batch->status !== BatchStatus::APPROVED) {
+            throw new BatchException("Only approved batches can be posted");
         }
 
         // store key before dispatching
@@ -128,38 +145,38 @@ class BatchService
             ]);
 
             $batch->update([
-                'status' => BatchStatus::POSTING->value
+                'status' => BatchStatus::POSTING
             ]);
         });
 
-        PostBatchJob::dispatch($batch, $user->tenant_id);
+        PostBatchJob::dispatch($batch, $user->tenant_id, $user->id);
     }
 
     public function retryBatch(Batch $batch): void
     {
 
+        $user = auth()->user();
         $this->ensureAdminRole();
+
+        // batch must be posted or partially_posted
+        if (!in_array($batch->status, [BatchStatus::POSTED, BatchStatus::PARTIALLY_POSTED, BatchStatus::POSTING])) {
+            throw new BatchException("Only posted batches can be retried");
+        }
 
         // batch must have failed items
         $hasFailed = $batch->items()
-            ->where('status', 'FAILED')
+            ->whereIn('status', [BatchStatusItem::FAILED, BatchStatusItem::VALID])
             ->exists();
 
         if (!$hasFailed) {
-            throw new \Exception("No failed items to retry");
-        }
-
-        // batch must be posted or partially_posted
-        if (!in_array($batch->status, ['POSTED', 'PARTIALLY_POSTED'])) {
-            throw new \Exception("Only posted batches can be retried");
+            throw new BatchException("No failed items to retry");
         }
 
         // dispatch same job
-        PostBatchJob::dispatch($batch, $batch->tenant_id);
+        PostBatchJob::dispatch($batch, $batch->tenant_id, $user->id);
 
-
-        $failedCount = $batch->items()->where('status', 'FAILED')->count();
-        $this->auditTrail->log($batch, 'RETRIED', "Retrying {$failedCount} failed items");
+        $failedCount = $batch->items()->where('status', BatchStatusItem::FAILED)->count();
+        $this->auditTrail->log($batch, 'retried', ["message" => "Retrying {$failedCount} failed items"]);
     }
 
 

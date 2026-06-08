@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\BatchStatusItem;
 use App\Models\Scopes\TenantScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -22,6 +23,12 @@ class BatchItem extends Model
         'error_message',
         'failue_reason',
     ];
+    protected $guarded = ['status', 'posted_at'];
+
+    protected $casts = [
+        'status' => BatchStatusItem::class,
+    ];
+
 
     protected static function booted()
     {
